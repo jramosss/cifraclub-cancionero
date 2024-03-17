@@ -2,8 +2,8 @@ import axios from 'axios'
 import { NextRequest } from 'next/server'
 
 type GenerateResponse = {
-    filename: string
-    bucket: string
+    url: string
+    html: string
 }
 
 export async function POST(req: NextRequest) {
@@ -17,9 +17,9 @@ export async function POST(req: NextRequest) {
                 params: { list_url },
             },
         )
-        const url = res.data.url
+        const { url, html } = res.data as GenerateResponse
 
-        return new Response(JSON.stringify(url))
+        return new Response(JSON.stringify({ url, html }))
     } catch (e) {
         return new Response(JSON.stringify(e), {
             headers: {

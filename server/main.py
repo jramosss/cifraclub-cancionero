@@ -55,7 +55,7 @@ async def scrape_and_download_pdf(list_url: str):
         pass
     upload_to_aws(filepath, filename)
     url = get_public_url(filename)
-    return { "url": url }
+    return { "url": url, "html": html }
 
 
 
