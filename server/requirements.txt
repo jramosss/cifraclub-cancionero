@@ -1,0 +1,7 @@
+aiohttp 
+beautifulsoup4
+pdfkit
+jinja2
+boto3
+fastapi
+uvicorn

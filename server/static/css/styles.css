@@ -1,0 +1,51 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+#topbar {
+    background-color: #FF7700;
+    height: 50px;
+}
+#container {
+    margin-top: 100px;
+    text-align: center;
+}
+h2 {
+    color: #333;
+}
+input[type="text"] {
+    padding: 15px;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    width: 80%;
+    max-width: 400px;
+}
+button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+button:hover {
+    background-color: #45a049;
+}
+a.button {
+    text-decoration: none;
+}
+#download-btn {
+    display: none;
+    margin-top: 20px;
+}
+#container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 70vh;
+    flex-direction: column;
+}
