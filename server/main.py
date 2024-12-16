@@ -5,10 +5,11 @@ import pdfkit
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from src.awsclient import get_public_url, upload_to_aws
 from src.html import get_html
-from src.scraper import scrape_songs
+from src.scraper import Scraper, scrapers, get_or_create_scraper
 
 templates = Jinja2Templates(directory="templates")
 
@@ -23,7 +24,7 @@ templates = Jinja2Templates(directory="templates")
 #         shutil.rmtree('./tmp', ignore_errors=True)
 
 # app = FastAPI(lifespan=lifespan)
-app = FastAPI()
+app = FastAPI(debug=True)
 
 app.mount(
     "/static",
@@ -35,9 +36,12 @@ app.mount(
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.post("/generate")
-async def scrape_and_download_pdf(list_url: str):
-    songs_list = await scrape_songs(list_url)
+
+@app.post("/generate/{id}")
+async def scrape_and_download_pdf(id: str, list_url: str):
+    scraper = get_or_create_scraper(id)
+    print("Generating pdf with id", id)
+    songs_list = await scraper.scrape_songs(list_url)
     html = get_html(songs_list)
     options = {
         'page-size': 'Letter',
@@ -53,9 +57,22 @@ async def scrape_and_download_pdf(list_url: str):
         # about external links, but i really don't care that much, it generates
         # the file anyway
         pass
-    upload_to_aws(filepath, filename)
-    url = get_public_url(filename)
+    # upload_to_aws(filepath, filename)
+    # url = get_public_url(filename)
+    url = filepath
     return { "url": url, "html": html }
 
 
-
+@app.websocket("/{id}")
+async def websocket_endpoint(id: str, websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        try:
+            scraper = get_or_create_scraper(id)
+            scraper.assign_socket(websocket)
+        except WebSocketDisconnect:
+            print(f"Client {id} disconnected")
+            scraper = scrapers.get(id)
+            if scraper and scraper.socket:
+                scraper.socket = None
+                del scrapers[id]

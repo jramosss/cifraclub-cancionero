@@ -5,3 +5,6 @@ jinja2
 boto3
 fastapi
 uvicorn
+websockets
+fastapi[standard]
+uvicorn[standard]
