@@ -1,57 +1,17 @@
-'use client'
-
-import Preview from '@/lib/components/Preview'
-import axios from 'axios'
-import Link from 'next/link'
-import { useState } from 'react'
+import { UrlConverter } from "@/components/url-converter"
 
 export default function Home() {
-    const [downloadURL, setDownloadURL] = useState<string | null>(null)
-    const [html, setHtml] = useState<string | null>(null)
-    const [previewVisible, setPreviewVisible] = useState(false)
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-[#ff7700] via-white to-red-500">
+      <div className="container mx-auto px-4 py-16 max-w-3xl">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold mb-4 text-gray-800">Cifraclub to PDF</h1>
+          <p className="text-lg text-gray-700">Convert your favorite Cifraclub song lists into downloadable PDFs</p>
+        </div>
 
-    async function submit(e: FormData) {
-        const list_url = e.get('list_url')
-
-        const response = await axios.post('/api/generate', { list_url })
-        const { url, html } = response.data
-        setDownloadURL(url)
-        setHtml(html)
-        console.log({ url, html })
-    }
-
-    return (
-        <main className="flex min-h-screen flex-col items-center gap-2 justify-center">
-            <h1 style={{ color: '#F70' }}>Insert list url</h1>
-            <form className="flex flex-col gap-2" action={submit}>
-                <input
-                    name="list_url"
-                    className="border-gray-800 p-2 border-solid border-2 w-96"
-                    placeholder="https://www.cifraclub.com/musico/552807671/repertorio/favoritas/"
-                />
-                <button
-                    className="text-white p-2 rounded-md"
-                    type="submit"
-                    style={{ backgroundColor: '#F70' }}
-                >
-                    Submit
-                </button>
-            </form>
-            {downloadURL && <Link href={downloadURL}>Download</Link>}
-            {downloadURL && (
-                <button onClick={() => setPreviewVisible(true)}>
-                    Show Preview
-                </button>
-            )}
-            {html && (
-                <div>
-                    <Preview
-                        html={html}
-                        visible={previewVisible}
-                        onHide={() => setPreviewVisible(false)}
-                    />
-                </div>
-            )}
-        </main>
-    )
+        <UrlConverter />
+      </div>
+    </main>
+  )
 }
+
