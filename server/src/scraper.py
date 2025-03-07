@@ -1,42 +1,22 @@
-import asyncio
 import dataclasses
 import ssl
 from typing import Optional
 
 import aiohttp
-from bs4 import BeautifulSoup
 from starlette.websockets import WebSocket
+
+from src.utils import create_print_url, generate_html
+import concurrent.futures
+from bs4 import BeautifulSoup
+import requests
+
 
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
 ssl_context.verify_mode = ssl.CERT_NONE
 
 BASE_URL = "https://www.cifraclub.com"
-
-
-def normalize_song_name_from_url(url: str):
-    words = url.split("/")[-2].replace("-", " ").split(" ")
-    return " ".join(map(lambda word: word.capitalize(), words))
-
-
-async def fetch(session: aiohttp.ClientSession, url: str) -> Optional[str]:
-    async with session.get(url, ssl=ssl_context) as response:
-        if response.status == 200:
-            html = await response.text()
-            return html
-        else:
-            print(f"Failed to fetch {url}")
-            return None
-
-
-def sanitize_song_link(song_url: str) -> str:
-    if song_url.endswith(".html"):
-        song_url = song_url[:-5]
-    if not song_url.endswith('/'):
-        song_url += "/"
-    song_url += "imprimir.html"
-
-    return song_url
+MAX_WORKERS = 10
 
 
 @dataclasses.dataclass
@@ -48,44 +28,31 @@ class Scraper:
         scrapers[self.id] = self
 
     def assign_socket(self, socket: WebSocket):
-        print("Assigning socket to ", self.id)
         self.socket = socket
 
-    async def scrape_song_details(self, session: aiohttp.ClientSession, song_url: str):
-        if self.socket is not None:
-            print("Socket available")
-            await self.socket.send_text(normalize_song_name_from_url(song_url))
-        else:
-            print("Socket not available")
+    @staticmethod
+    def get_urls_from_list(list_url: str):
+        raw_html = requests.get(list_url).text
+        soup = BeautifulSoup(raw_html, "html.parser")
+        list_element = soup.find(class_="list-links list-musics")
+        return [create_print_url(el["href"]) for el in list_element.find_all("a")]
 
-        html = await fetch(session, song_url)
-        if html:
-            song_soup = BeautifulSoup(html, "html.parser")
-            folhas = song_soup.find_all("div", class_=lambda x: x and x.startswith("folha"))
+    @staticmethod
+    def scrape_page(url: str):
+        raw_html = requests.get(url).text
+        soup = BeautifulSoup(raw_html, "html.parser")
+        content = soup.find(class_="pages")
+        return str(content.decode(4, "utf-8"))
 
-            return "".join(str(folha) for folha in folhas)
+    def scrape_pages(self, urls: list[str]):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = [executor.submit(self.scrape_page, url) for url in urls]
+            return [future.result() for future in concurrent.futures.as_completed(futures)]
 
-
-    async def get_songs_links_in_list(self, session: aiohttp.ClientSession, list_url: str):
-        html = await fetch(session, list_url)
-        if not html:
-            return
-        soup = BeautifulSoup(html, "html.parser")
-        song_list = soup.find("ol", class_="list-links list-musics")
-        song_links = song_list.find_all("li")
-        songs_links_to_return: list[str] = []
-        for link in song_links:
-            song_url = BASE_URL + sanitize_song_link(link.find('a')['href'])
-            songs_links_to_return.append(song_url)
-        return songs_links_to_return
-
-    async def scrape_songs(self, list_url: str):
-        async with aiohttp.ClientSession() as session:
-            songs_links = await self.get_songs_links_in_list(session, list_url)
-            tasks = [self.scrape_song_details(session, song_url) for song_url in songs_links]
-
-            song_details = await asyncio.gather(*tasks)
-            return song_details
+    def scrape(self, url: str):
+        urls = self.get_urls_from_list(url)
+        contents = self.scrape_pages(urls)
+        return generate_html(contents)
 
 
 scrapers: dict[str, Scraper] = {}
