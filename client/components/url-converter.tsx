@@ -122,12 +122,12 @@ export function UrlConverter() {
                 <FileText className="h-16 w-16 text-[#ff7700]" />
                 <h3 className="text-xl font-semibold text-gray-800">PDF Generated Successfully!</h3>
                 <div className="flex flex-col sm:flex-row gap-4 w-full">
-                  <Button
+                  {/* <Button
                     onClick={() => window.open(pdfUrl, "_blank")}
                     className="flex-1 bg-[#ff7700] hover:bg-[#ff7700]/90"
                   >
                     View PDF
-                  </Button>
+                  </Button> */}
                   <Button
                     onClick={() => {
                       const link = document.createElement("a")
@@ -148,18 +148,22 @@ export function UrlConverter() {
             </CardContent>
           </Card>
 
-          <div className="aspect-[3/4] w-full max-h-[600px] rounded-lg overflow-auto border border-gray-200 shadow-md bg-white p-4">
-            {html ? (
-              <div className="flex flex-col gap-4">
-                <h1 className="font-bold text-2xl">Preview</h1>
-                <div dangerouslySetInnerHTML={{ __html: html }} className="pdf-preview" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-gray-500">No preview available</p>
-              </div>
-            )}
-          </div>
+          {/*
+          TODO: This preview feature inserts a whitespace at the top of the page, fix this
+          <div className="w-full rounded-lg border border-gray-200 shadow-md bg-white">
+            <div className="aspect-[3/4] w-full max-h-[600px] overflow-auto p-4">
+              {html ? (
+                <div className="flex flex-col gap-4">
+                  <h1 className="text-xl font-semibold text-gray-800">Preview</h1>
+                  <div dangerouslySetInnerHTML={{ __html: html }} className="pdf-preview" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-gray-500">No preview available</p>
+                </div>
+              )}
+            </div>
+          </div> */}
         </div>
       )}
     </div>

@@ -101,3 +101,23 @@
     margin-top: 0.5rem;
     overflow-x: auto;
 }
+
+/* Ensure the body takes up full height */
+html,
+body {
+    min-height: 100%;
+    height: 100%;
+}
+
+/* Prevent content from causing unexpected layout shifts */
+#__next,
+main {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+/* Ensure the container grows properly */
+.container {
+    flex: 1;
+}
