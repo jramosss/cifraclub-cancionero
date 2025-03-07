@@ -148,10 +148,17 @@ export function UrlConverter() {
             </CardContent>
           </Card>
 
-          {/* TODO: when creating this element, the top bar gets filled with a white bar, fix this */}
-          <div className="flex flex-col gap-4 w-full h-96 overflow-y-auto border p-4 bg-white shadow">
-            <h1 className="font-bold">Preview</h1>
-            <div dangerouslySetInnerHTML={{ __html: html! }} />
+          <div className="aspect-[3/4] w-full max-h-[600px] rounded-lg overflow-auto border border-gray-200 shadow-md bg-white p-4">
+            {html ? (
+              <div className="flex flex-col gap-4">
+                <h1 className="font-bold text-2xl">Preview</h1>
+                <div dangerouslySetInnerHTML={{ __html: html }} className="pdf-preview" />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-gray-500">No preview available</p>
+              </div>
+            )}
           </div>
         </div>
       )}
