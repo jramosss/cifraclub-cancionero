@@ -1,6 +1,5 @@
 aiohttp~=3.11.10
 beautifulsoup4~=4.12.3
-pdfkit~=1.0.0
 jinja2
 boto3~=1.35.81
 fastapi~=0.115.6

@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 
-import pdfkit
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -10,23 +9,21 @@ from starlette.responses import FileResponse
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from src.awsclient import get_public_url, upload_to_aws
-from src.html import get_html
 from src.pdf import html_to_pdf
-from src.scraper import Scraper, scrapers, get_or_create_scraper
-from os import path, mkdir
-import shutil
+from src.scraper import scrapers, get_or_create_scraper
+from os import path
 
 templates = Jinja2Templates(directory="templates")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if not path.exists('./tmp'):
-        mkdir('./tmp')
-    try:
-        yield
-    finally:
-        shutil.rmtree('./tmp', ignore_errors=True)
+    yield
+    # remove every .pdf file from /static
+    folder = Path(__file__).parent.absolute() / "static"
+    for file in folder.iterdir():
+        if file.suffix == ".pdf":
+            file.unlink()
 app = FastAPI(debug=True, lifespan=lifespan)
 
 app.mount(
@@ -51,19 +48,11 @@ async def get_pdf(filename: str):
 @app.post("/generate/{id}")
 async def scrape_and_download_pdf(id: str, list_url: str):
     scraper = get_or_create_scraper(id)
-    songs_list = scraper.scrape(list_url)
-    html = get_html(songs_list)
+    html = scraper.scrape(list_url)
     dt = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = f"songs-{dt}.pdf"
     filepath = f"./static/{filename}"
-    try:
-        await html_to_pdf(html, filepath)
-    except OSError:
-        # I don't really know why this exception happens, i think it's something
-        # about external links, but i really don't care that much, it generates
-        # the file anyway
-        print("OS ERROR")
-        pass
+    await html_to_pdf(html, filepath)
     # upload_to_aws(filepath, filename)
     # url = get_public_url(filename)
     url = filepath
