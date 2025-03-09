@@ -6,41 +6,54 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import axios from "axios"
 import { AlertCircle, FileText, Loader2 } from "lucide-react"
-import { useState } from "react"
-import { v4 } from "uuid"
+import { useEffect, useState } from "react"
+import { connectToSocket } from "./utils"
 
 type ConvertToPdfResponse = { 
   url: string;
   html: string;
 }
 
-export function UrlConverter() {
+export function UrlConverter({ id }: { id: string }) {
   const [url, setUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [html, setHtml] = useState<string | null>(null)
-  const id = v4()
+  const [progress, setProgress] = useState(0)
+  const [socketReady, setSocketReady] = useState(false)
 
   const validateUrl = (url: string) => {
     const cifraclubRegex = /^(https?:\/\/)?(www\.)?cifraclub\.com.*/i
     return cifraclubRegex.test(url)
   }
 
+  useEffect(() => {
+    const socket = connectToSocket(id, () => setSocketReady(true))
+    socket.onmessage = (event) => {
+      console.log("Received message", event.data)
+      const data: WebsocketProgressEvent = JSON.parse(event.data)
+      setProgress(data.total > 0 ? (data.progress / data.total) * 100 : 0)
+    }
+
+    return () => {
+      socket.close()
+    }
+  }, [])
+
   const convertUrlToPdf = async (url: string): Promise<ConvertToPdfResponse> => {
-    return fetch("/api/convert-to-pdf", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ list_url: url, connectionId: id }),
-    }).then((res) => {
-      if (!res.ok) {
-        throw new Error("An error occurred while processing your request")
-      }
-      return res.json()
-    })
+    const response = await axios.post("/api/convert-to-pdf", {
+      list_url: url,
+      connection_id: id,
+    });
+
+    if (response.status !== 200) {
+      throw new Error("An error occurred while processing your request");
+    }
+
+    return response.data;
   }
 
   // TODO: implement a progress bar
@@ -89,7 +102,7 @@ export function UrlConverter() {
             <Button
               type="submit"
               className="w-full bg-gradient-to-r from-[#ff7700] to-red-500 hover:from-[#ff7700]/90 hover:to-red-600"
-              disabled={isLoading}
+              disabled={isLoading || !socketReady}
             >
               {isLoading ? (
                 <>
@@ -113,6 +126,14 @@ export function UrlConverter() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+
+      {
+        isLoading && (
+          <div className="flex items-center justify-center">
+            <progress value={progress} max="100" className="w-full h-2 rounded-lg bg-gray-200" />
+          </div>
+        )
+      }
 
       {pdfUrl && !error && (
         <div className="space-y-4">

@@ -7,14 +7,16 @@ type GenerateResponse = {
 }
 
 export async function POST(req: NextRequest) {
-    const { list_url, connectionId } = await req.json()
+    const { list_url, connection_id } = await req.json()
     const API_URL = process.env.API_URL
     try {
         const res = await axios.post(
-            `${API_URL}/generate/${connectionId}`,
-            {},
+            `${API_URL}/generate/${connection_id}`,
+            { list_url },
             {
-                params: { list_url },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
             },
         )
         const { url, html } = res.data as GenerateResponse

@@ -5,8 +5,9 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
-from starlette.websockets import WebSocket, WebSocketDisconnect
+from fastapi.websockets import WebSocket, WebSocketDisconnect
 
 from src.awsclient import get_public_url, upload_to_aws
 from src.pdf import html_to_pdf
@@ -25,6 +26,15 @@ async def lifespan(app: FastAPI):
         if file.suffix == ".pdf":
             file.unlink()
 app = FastAPI(debug=True, lifespan=lifespan)
+
+# Allow WebSocket connections from frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust to match your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.mount(
     "/static",
@@ -48,7 +58,8 @@ async def get_pdf(filename: str):
 @app.post("/generate/{id}")
 async def scrape_and_download_pdf(id: str, list_url: str):
     scraper = get_or_create_scraper(id)
-    html = scraper.scrape(list_url)
+    html = await scraper.scrape(list_url)
+    print("Done scraping")
     dt = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = f"songs-{dt}.pdf"
     filepath = f"./static/{filename}"
@@ -56,6 +67,7 @@ async def scrape_and_download_pdf(id: str, list_url: str):
     # upload_to_aws(filepath, filename)
     # url = get_public_url(filename)
     url = filepath
+    # await scraper.socket.close()
     return { "url": url, "html": html }
 
 
@@ -65,7 +77,9 @@ async def websocket_endpoint(id: str, websocket: WebSocket):
     while True:
         try:
             scraper = get_or_create_scraper(id)
+            print(f"Assigning socket to {id}")
             scraper.assign_socket(websocket)
+            break
         except WebSocketDisconnect:
             print(f"Client {id} disconnected")
             scraper = scrapers.get(id)

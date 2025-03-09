@@ -1,6 +1,7 @@
 import dataclasses
 import ssl
 from typing import Optional
+import asyncio
 
 import aiohttp
 from starlette.websockets import WebSocket
@@ -19,10 +20,12 @@ BASE_URL = "https://www.cifraclub.com"
 MAX_WORKERS = 10
 
 
-@dataclasses.dataclass
 class Scraper:
-    id: str
-    socket: Optional[WebSocket] = None
+    def __init__(self, id: str, socket: Optional[WebSocket] = None):
+        self.id = id
+        self.socket = socket
+        self.amount_of_songs = 0
+        self.progress = 0
 
     def __post_init__(self):
         scrapers[self.id] = self
@@ -37,21 +40,34 @@ class Scraper:
         list_element = soup.find(class_="list-links list-musics")
         return [create_print_url(el["href"]) for el in list_element.find_all("a")]
 
-    @staticmethod
-    def scrape_page(url: str):
-        raw_html = requests.get(url).text
+    async def scrape_page(self, url: str):
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
+            async with session.get(url) as response:
+                raw_html = await response.text()
+
         soup = BeautifulSoup(raw_html, "html.parser")
         content = soup.find(class_="pages")
-        return str(content.decode(4, "utf-8"))
+        result = str(content.decode(4, "utf-8"))
 
-    def scrape_pages(self, urls: list[str]):
-        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            futures = [executor.submit(self.scrape_page, url) for url in urls]
-            return [future.result() for future in concurrent.futures.as_completed(futures)]
+        self.progress += 1
+        if self.socket:
+            print(f"Sending to socket {self.progress}/{self.amount_of_songs}")
+            await self.socket.send_json({
+                "progress": self.progress,
+                "total": self.amount_of_songs
+            })
 
-    def scrape(self, url: str):
+        return result
+
+    async def scrape_pages(self, urls: list[str]):
+        tasks = [self.scrape_page(url) for url in urls]
+        results = await asyncio.gather(*tasks)
+        return results
+
+    async def scrape(self, url: str):
         urls = self.get_urls_from_list(url)
-        contents = self.scrape_pages(urls)
+        self.amount_of_songs = len(urls)
+        contents = await self.scrape_pages(urls)
         return generate_html(contents)
 
 
@@ -59,7 +75,7 @@ scrapers: dict[str, Scraper] = {}
 
 def get_or_create_scraper(id: str) -> Scraper:
     if id in scrapers:
-        print("Scraper already exists, returning it")
+        print(f"Scraper {id} already exists, returning it")
         return scrapers[id]
 
     print("Creating scraper", id)

@@ -1,4 +1,5 @@
 import { UrlConverter } from "@/components/url-converter"
+import { v4 } from "uuid"
 
 export default function Home() {
   return (
@@ -9,7 +10,7 @@ export default function Home() {
           <p className="text-lg text-gray-700">Convert your favorite Cifraclub song lists into downloadable PDFs</p>
         </div>
 
-        <UrlConverter />
+        <UrlConverter id={v4()} />
       </div>
     </main>
   )
