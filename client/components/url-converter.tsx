@@ -8,8 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import axios from "axios";
 import { AlertCircle, FileText } from "lucide-react";
-import { useEffect, useState } from "react";
-import { connectToSocket } from "./utils";
+import { useState } from "react";
 
 type ConvertToPdfResponse = {
 	url: string;
@@ -21,25 +20,11 @@ export function UrlConverter({ id }: { id: string }) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-	const [progress, setProgress] = useState(0);
-	const [socketReady, setSocketReady] = useState(false);
 
 	const validateUrl = (url: string) => {
 		const cifraclubRegex = /^(https?:\/\/)?(www\.)?cifraclub\.com.*/i;
 		return cifraclubRegex.test(url);
 	};
-
-	useEffect(() => {
-		const socket = connectToSocket(id, () => setSocketReady(true));
-		socket.onmessage = (event) => {
-			const data: WebsocketProgressEvent = JSON.parse(event.data);
-			setProgress(data.total > 0 ? data.progress / data.total : 0);
-		};
-
-		return () => {
-			socket.close();
-		};
-	}, []);
 
 	const convertUrlToPdf = async (
 		url: string,
@@ -115,7 +100,28 @@ export function UrlConverter({ id }: { id: string }) {
 						>
 							{isLoading ? (
 								<>
-									<progress value={progress} className="w-full flex" />
+									{/* biome-ignore lint/a11y/noSvgWithoutTitle: <explanation> */}
+									<svg
+										className="animate-spin h-4 w-4 mr-2"
+										xmlns="http://www.w3.org/2000/svg"
+										fill="none"
+										viewBox="0 0 24 24"
+									>
+										<circle
+											className="opacity-25"
+											cx="12"
+											cy="12"
+											r="10"
+											stroke="currentColor"
+											strokeWidth="4"
+										/>
+										<path
+											className="opacity-75"
+											fill="currentColor"
+											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A8.009 8.009 0 014.709 14H2c0 3.309 2.691 6 6 6v-2zm10-9.291A8.009 8.009 0 0119.291 10H22c0-3.309-2.691-6-6-6v2z"
+										/>
+									</svg>
+									Loading...
 								</>
 							) : (
 								<>
@@ -154,7 +160,6 @@ export function UrlConverter({ id }: { id: string }) {
 									<Button
 										onClick={() => {
 											const link = document.createElement("a");
-											console.log({ pdfUrl });
 											link.href = pdfUrl;
 											link.download = "cifraclub-songs.pdf";
 											link.target = "_blank";
@@ -171,23 +176,6 @@ export function UrlConverter({ id }: { id: string }) {
 							</div>
 						</CardContent>
 					</Card>
-
-					{/*
-          TODO: This preview feature inserts a whitespace at the top of the page, fix this
-          <div className="w-full rounded-lg border border-gray-200 shadow-md bg-white">
-            <div className="aspect-[3/4] w-full max-h-[600px] overflow-auto p-4">
-              {html ? (
-                <div className="flex flex-col gap-4">
-                  <h1 className="text-xl font-semibold text-gray-800">Preview</h1>
-                  <div dangerouslySetInnerHTML={{ __html: html }} className="pdf-preview" />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-500">No preview available</p>
-                </div>
-              )}
-            </div>
-          </div> */}
 				</div>
 			)}
 		</div>
