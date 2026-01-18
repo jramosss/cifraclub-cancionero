@@ -1,11 +1,11 @@
 # Stage 1: Modules caching
-FROM golang:1.22 AS modules
+FROM golang:1.25 AS modules
 COPY go.mod go.sum /modules/
 WORKDIR /modules
 RUN go mod download
 
 # Stage 2: Build
-FROM golang:1.22 AS builder
+FROM golang:1.25 AS builder
 COPY --from=modules /go/pkg /go/pkg
 COPY . /workdir
 WORKDIR /workdir

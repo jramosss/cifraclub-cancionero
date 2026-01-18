@@ -1,11 +1,1 @@
-__pycache__
-node_modules
-.venv
-*.pyc
-.env
-.env.*
-*.pdf
-.next
-.idea
-.vscode
 .DS_Store

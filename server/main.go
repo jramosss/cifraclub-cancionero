@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"cifraclub-list-to-pdf/src"
 
@@ -17,6 +18,9 @@ func main() {
 			log.Fatalf("failed to create output directory: %v", err)
 		}
 	}
+
+	// Start background cleanup task (1 hour TTL)
+	src.StartCleanupTask("output", 1*time.Hour)
 
 	r := gin.Default()
 
