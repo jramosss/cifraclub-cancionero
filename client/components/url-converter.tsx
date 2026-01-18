@@ -11,15 +11,18 @@ import { AlertCircle, FileText } from "lucide-react";
 import { useState } from "react";
 
 type ConvertToPdfResponse = {
-	url: string;
-	html: string;
+	message: string;
+	filename: string;
+	download: string;
 };
 
 export function UrlConverter({ id }: { id: string }) {
 	const [url, setUrl] = useState("");
+	const [color, setColor] = useState("#ff7700");
+	const [fontSize, setFontSize] = useState("14px");
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+	const [pdfDownloadUrl, setPdfDownloadUrl] = useState<string | null>(null);
 
 	const validateUrl = (url: string) => {
 		const cifraclubRegex = /^(https?:\/\/)?(www\.)?cifraclub\.com.*/i;
@@ -28,10 +31,11 @@ export function UrlConverter({ id }: { id: string }) {
 
 	const convertUrlToPdf = async (
 		url: string,
+		color: string,
+		fontSize: string,
 	): Promise<ConvertToPdfResponse> => {
-		const response = await axios.post("/api/convert-to-pdf", {
-			list_url: url,
-			connection_id: id,
+		const response = await axios.get("/api/convert-to-pdf", {
+			params: { url, color, fontSize },
 		});
 
 		if (response.status !== 200) {
@@ -54,8 +58,9 @@ export function UrlConverter({ id }: { id: string }) {
 
 		try {
 			setIsLoading(true);
-			const { url: _pdfUrl } = await convertUrlToPdf(url);
-			setPdfUrl(_pdfUrl);
+			const { download } = await convertUrlToPdf(url, color, fontSize);
+			// We point to our local proxy for files
+			setPdfDownloadUrl(download);
 		} catch (err) {
 			setError(
 				err instanceof Error
@@ -91,6 +96,52 @@ export function UrlConverter({ id }: { id: string }) {
 							<p className="text-xs text-gray-500">
 								Enter a URL from Cifraclub.com to convert it to PDF
 							</p>
+						</div>
+
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<label
+									htmlFor="color"
+									className="text-sm font-medium text-gray-700"
+								>
+									Primary Color
+								</label>
+								<div className="flex gap-2">
+									<Input
+										id="color"
+										type="color"
+										value={color}
+										onChange={(e) => setColor(e.target.value)}
+										className="w-12 p-1 h-10 border-[#ff7700]/30"
+										disabled={isLoading}
+									/>
+									<Input
+										type="text"
+										value={color}
+										onChange={(e) => setColor(e.target.value)}
+										placeholder="#ff7700"
+										className="flex-1 border-[#ff7700]/30"
+										disabled={isLoading}
+									/>
+								</div>
+							</div>
+							<div className="space-y-2">
+								<label
+									htmlFor="fontSize"
+									className="text-sm font-medium text-gray-700"
+								>
+									Font Size
+								</label>
+								<Input
+									id="fontSize"
+									type="text"
+									placeholder="14px"
+									value={fontSize}
+									onChange={(e) => setFontSize(e.target.value)}
+									className="border-[#ff7700]/30"
+									disabled={isLoading}
+								/>
+							</div>
 						</div>
 
 						<Button
@@ -141,7 +192,7 @@ export function UrlConverter({ id }: { id: string }) {
 				</Alert>
 			)}
 
-			{pdfUrl && !error && (
+			{pdfDownloadUrl && !error && (
 				<div className="space-y-4">
 					<Card className="border-green-500/20 shadow-lg">
 						<CardContent className="pt-6">
@@ -151,17 +202,14 @@ export function UrlConverter({ id }: { id: string }) {
 									PDF Generated Successfully!
 								</h3>
 								<div className="flex flex-col sm:flex-row gap-4 w-full">
-									{/* <Button
-                    onClick={() => window.open(pdfUrl, "_blank")}
-                    className="flex-1 bg-[#ff7700] hover:bg-[#ff7700]/90"
-                  >
-                    View PDF
-                  </Button> */}
 									<Button
 										onClick={() => {
 											const link = document.createElement("a");
-											link.href = pdfUrl;
-											link.download = "cifraclub-songs.pdf";
+											// If it's a relative path starting with /files, we need to handle it
+											// Our proxy for files will be at /api/files/:filename
+											const filename = pdfDownloadUrl.split("/").pop();
+											link.href = `/api/files/${filename}`;
+											link.download = filename || "cifraclub-songs.pdf";
 											link.target = "_blank";
 											document.body.appendChild(link);
 											link.click();

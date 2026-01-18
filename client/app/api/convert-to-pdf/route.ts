@@ -6,28 +6,38 @@ type GenerateResponse = {
 	html: string;
 };
 
-export async function POST(req: NextRequest) {
-	const { list_url, connection_id } = await req.json();
-	const API_URL = process.env.API_URL;
-	try {
-		const res = await axios.post(
-			`${API_URL}/generate/${connection_id}`,
-			{ list_url },
-			{
-				headers: {
-					"Content-Type": "application/json",
-				},
-			},
-		);
-		const { url } = res.data as GenerateResponse;
+export async function GET(req: NextRequest) {
+	const { searchParams } = new URL(req.url);
+	const url = searchParams.get("url");
+	const color = searchParams.get("color");
+	const fontSize = searchParams.get("fontSize");
 
-		return new Response(JSON.stringify({ url }));
-	} catch (e) {
+	if (!url) {
+		return new Response(JSON.stringify({ error: "url parameter is required" }), {
+			status: 400,
+			headers: { "Content-Type": "application/json" },
+		});
+	}
+
+	const API_URL = process.env.API_URL || "http://localhost:8080";
+
+	try {
+		const res = await axios.get(`${API_URL}/generate`, {
+			params: { url, color, fontSize },
+		});
+
+		// The backend returns { message, filename, download }
+		// We can return the download link or the whole object
+		return new Response(JSON.stringify(res.data), {
+			status: 200,
+			headers: { "Content-Type": "application/json" },
+		});
+	} catch (e: any) {
 		console.error(e);
-		return new Response(JSON.stringify({ error: e }), {
-			headers: {
-				"Content-Type": "application/json",
-			},
+		const errorMessage = e.response?.data?.error || "failed to generate PDF";
+		return new Response(JSON.stringify({ error: errorMessage }), {
+			status: e.response?.status || 500,
+			headers: { "Content-Type": "application/json" },
 		});
 	}
 }
