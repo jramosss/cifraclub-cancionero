@@ -1,0 +1,9 @@
+*.txt
+*.html
+*.pdf
+build/
+cifraclub-list-to-pdf
+build
+server
+bin/
+output/

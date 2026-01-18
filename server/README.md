@@ -1,12 +1,45 @@
-# Cifraclub PDF generator
+# Cifra Club Cancionero API
 
-If you are a musician, you probably know the website [Cifraclub](https://www.cifraclub.com/). It is a great website to find chords and tabs for your favorite songs. However, if you want to have all your songs in one place, you'll have to go through the process of downloading every song individually. This can be a very time-consuming process. This is why I created this script. It will download all songs from your list and save them in a PDF file.
+Servidor en Go que convierte listas de canciones de Cifra Club en un PDF.
 
-## How to use
-- Install requirements
-- Install [wkhtmltopdf](https://wkhtmltopdf.org/) 
-    - On Ubuntu: `sudo apt-get install wkhtmltopdf`
-    - On Windows: Download the installer from the website
-    - On Mac: `brew install homebrew/cask/wkhtmltopdf`
-- Run the script and insert any list of songs from the website. For example: `https://www.cifraclub.com/musico/551928421/repertorio/favoritas/`
-    - The script wont check if the URL is valid, i'm lazy
+## Endpoints
+
+### 1. Generar Cancionero
+`GET /generate?url=<CIFRACLUB_LIST_URL>`
+
+Ejemplo:
+`/generate?url=https://www.cifraclub.com.br/juan-gabriel/`
+
+Retorna un JSON con el nombre del archivo generado:
+```json
+{
+  "message": "PDF generated successfully",
+  "filename": "7a2b3c4d.pdf",
+  "download": "/files/7a2b3c4d.pdf"
+}
+```
+
+### 2. Acceder al Archivo
+`GET /files/:filename`
+
+Ejemplo:
+`/files/7a2b3c4d.pdf`
+
+## Cómo ejecutar localmente
+
+1. Instalar dependencias:
+   ```bash
+   go mod download
+   ```
+
+2. Instalar Playwright y navegadores:
+   ```bash
+   go run github.com/playwright-community/playwright-go/cmd/playwright@latest install --with-deps
+   ```
+
+3. Ejecutar el servidor:
+   ```bash
+   go run .
+   ```
+
+El servidor iniciará en el puerto 8080 por defecto.
